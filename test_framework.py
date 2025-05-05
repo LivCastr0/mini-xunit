@@ -1,5 +1,5 @@
 class TestCase:
-
+    
     def __init__(self, test_method_name):
         self.test_method_name = test_method_name
 
@@ -23,7 +23,7 @@ class TestCase:
 
 
 class TestResult:
-
+    
     RUN_MSG = 'run'
     FAILURE_MSG = 'failed'
     ERROR_MSG = 'error'
@@ -47,6 +47,19 @@ class TestResult:
                f'{len(self.failures)} {self.FAILURE_MSG}, ' \
                f'{len(self.errors)} {self.ERROR_MSG}'
 
+
+class TestSuite:
+    def __init__(self):
+        self.tests = []
+
+    def add_test(self, test):
+        self.tests.append(test)
+
+    def run(self, result):
+        for test in self.tests:
+            test.run(result)
+
+
 class TestStub(TestCase):
     def test_success(self):
         assert True
@@ -56,6 +69,7 @@ class TestStub(TestCase):
 
     def test_error(self):
         raise Exception
+
 
 class TestSpy(TestCase):
     def __init__(self, name):
@@ -76,6 +90,7 @@ class TestSpy(TestCase):
     def tear_down(self):
         self.was_tear_down = True
         self.log += "tear_down"
+
 
 class TestCaseTest(TestCase):
     def set_up(self):
@@ -125,22 +140,47 @@ class TestCaseTest(TestCase):
         spy.run(self.result)
         assert spy.log == "set_up test_method tear_down"
 
+
+class TestSuiteTest(TestCase):
+    def test_suite_size(self):
+        suite = TestSuite()
+        suite.add_test(TestStub('test_success'))
+        suite.add_test(TestStub('test_failure'))
+        suite.add_test(TestStub('test_error'))
+        assert len(suite.tests) == 3
+
+    def test_suite_success_run(self):
+        result = TestResult()
+        suite = TestSuite()
+        suite.add_test(TestStub('test_success'))
+        suite.run(result)
+        assert result.summary() == '1 run, 0 failed, 0 error'
+
+    def test_suite_multiple_run(self):
+        result = TestResult()
+        suite = TestSuite()
+        suite.add_test(TestStub('test_success'))
+        suite.add_test(TestStub('test_failure'))
+        suite.add_test(TestStub('test_error'))
+        suite.run(result)
+        assert result.summary() == '3 run, 1 failed, 1 error'
+
 if __name__ == "__main__":
     result = TestResult()
+    suite = TestSuite()
 
-    tests = [
-        'test_result_success_run',
-        'test_result_failure_run',
-        'test_result_error_run',
-        'test_result_multiple_run',
-        'test_was_set_up',
-        'test_was_run',
-        'test_was_tear_down',
-        'test_template_method'
-    ]
+    suite.add_test(TestCaseTest('test_result_success_run'))
+    suite.add_test(TestCaseTest('test_result_failure_run'))
+    suite.add_test(TestCaseTest('test_result_error_run'))
+    suite.add_test(TestCaseTest('test_result_multiple_run'))
+    suite.add_test(TestCaseTest('test_was_set_up'))
+    suite.add_test(TestCaseTest('test_was_run'))
+    suite.add_test(TestCaseTest('test_was_tear_down'))
+    suite.add_test(TestCaseTest('test_template_method'))
 
-    for test_name in tests:
-        test = TestCaseTest(test_name)
-        test.run(result)
+    suite.add_test(TestSuiteTest('test_suite_size'))
+    suite.add_test(TestSuiteTest('test_suite_success_run'))
+    suite.add_test(TestSuiteTest('test_suite_multiple_run'))
 
+    suite.run(result)
     print(result.summary())
